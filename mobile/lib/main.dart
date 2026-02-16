@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -24,7 +25,13 @@ void main() async {
     ),
   );
 
-  await FirebaseService.initialize();
+  // Initialize Firebase with timeout to prevent hanging
+  await FirebaseService.initialize().timeout(
+    const Duration(seconds: 10),
+    onTimeout: () {
+      debugPrint('Firebase initialization timed out, continuing without it');
+    },
+  );
   runApp(const MyApp());
 }
 

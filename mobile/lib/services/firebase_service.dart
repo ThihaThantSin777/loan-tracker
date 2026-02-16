@@ -5,49 +5,73 @@ import 'api_service.dart';
 import '../config/api_config.dart';
 
 class FirebaseService {
-  static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  static FirebaseMessaging? _messaging;
   static final ApiService _api = ApiService();
+  static bool _initialized = false;
 
   /// Initialize Firebase and setup messaging
   static Future<void> initialize() async {
-    await Firebase.initializeApp();
+    try {
+      await Firebase.initializeApp();
+      _messaging = FirebaseMessaging.instance;
+      _initialized = true;
 
-    // Request permission
-    await requestPermission();
+      // Request permission
+      await requestPermission();
 
-    // Get and save FCM token
-    await _saveFcmToken();
+      // Get and save FCM token
+      await _saveFcmToken();
 
-    // Listen for token refresh
-    _messaging.onTokenRefresh.listen((newToken) {
-      _updateFcmToken(newToken);
-    });
+      // Listen for token refresh
+      _messaging!.onTokenRefresh.listen((newToken) {
+        _updateFcmToken(newToken);
+      });
 
-    // Handle foreground messages
-    FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+      // Handle foreground messages
+      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
 
-    // Handle background messages
-    FirebaseMessaging.onBackgroundMessage(_handleBackgroundMessage);
+      // Handle background messages
+      FirebaseMessaging.onBackgroundMessage(_handleBackgroundMessage);
 
-    // Handle notification tap when app is in background/terminated
-    FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
+      // Handle notification tap when app is in background/terminated
+      FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
+
+      debugPrint('Firebase initialized successfully');
+    } catch (e) {
+      debugPrint('Firebase initialization failed: $e');
+      // Continue without Firebase - app will still work without push notifications
+    }
   }
 
   /// Request notification permission
   static Future<bool> requestPermission() async {
-    NotificationSettings settings = await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
-    );
+    if (!_initialized || _messaging == null) return false;
 
-    return settings.authorizationStatus == AuthorizationStatus.authorized;
+    try {
+      NotificationSettings settings = await _messaging!.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
+      );
+
+      return settings.authorizationStatus == AuthorizationStatus.authorized;
+    } catch (e) {
+      debugPrint('Error requesting notification permission: $e');
+      return false;
+    }
   }
 
   /// Get FCM token
   static Future<String?> getToken() async {
-    return await _messaging.getToken();
+    if (!_initialized || _messaging == null) return null;
+
+    try {
+      return await _messaging!.getToken();
+    } catch (e) {
+      debugPrint('Error getting FCM token: $e');
+      return null;
+    }
   }
 
   /// Save FCM token to backend
