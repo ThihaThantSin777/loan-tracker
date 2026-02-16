@@ -17,7 +17,6 @@ return new class extends Migration
             $table->foreignId('payer_id')->constrained('users')->onDelete('cascade');
             $table->decimal('amount', 15, 2);
             $table->enum('payment_method', ['cash', 'e_wallet']);
-            $table->foreignId('e_wallet_id')->nullable()->constrained('e_wallets');
             $table->string('screenshot_url', 500)->nullable();
             $table->enum('status', ['pending', 'accepted', 'rejected'])->default('pending');
             $table->string('rejected_reason', 500)->nullable();
